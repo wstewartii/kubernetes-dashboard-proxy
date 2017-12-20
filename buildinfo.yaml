@@ -1,5 +1,5 @@
-dashboard_public_url: dashboard.homes.com
-dashboard_private_url: containers-dev.homes.com
-dashboard_private_port: 8880
-registry: ship.homes.com
-tag: master
+dashboard_public_url: dashboard.domain.com
+dashboard_private_url: private.domain.com
+dashboard_private_port: 80
+registry: registry.domain.com
+tag: latest
