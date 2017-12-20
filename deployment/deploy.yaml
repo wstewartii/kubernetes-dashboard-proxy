@@ -1,0 +1,96 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubernetes-dashboard-proxy
+  namespace: kube-system
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: kubernetes-dashboard-proxy-read
+rules:
+- apiGroups:
+  - '*'
+  resources:
+  - '*'
+  verbs:
+  - get
+  - watch
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: kubernetes-dashboard-proxy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kubernetes-dashboard-proxy-read
+subjects:
+- kind: ServiceAccount
+  name: kubernetes-dashboard-proxy
+  namespace: kube-system
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    ingress.kubernetes.io/rewrite-target: /
+  name: kubernetes-dashboard-proxy
+  namespace: kube-system
+spec:
+  rules:
+    - host: {{ dashboard_public_url }}
+      http:
+        paths:
+          - backend:
+              serviceName: kubernetes-dashboard-proxy
+              servicePort: 80
+            path: /
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+  name: kubernetes-dashboard-proxy
+  namespace: kube-system
+spec:
+  ports:
+    - port: 80
+  selector:
+    k8s-app: kubernetes-dashboard-proxy
+
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: kubernetes-dashboard-proxy
+  namespace: kube-system
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        k8s-app: kubernetes-dashboard-proxy
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: kubernetes-dashboard-proxy
+          image: {{ registry }}:{{ image }}/{{ tag }}
+          env:
+          - name: DASHBOARD_URL
+            value: {{ dashboard_private_url }}
+          - name: DASHBOARD_PORT
+            value: {{ dashboard_private_port }}
+          imagePullPolicy: Always
+          command: ['/bin/bash', 'entrypoint.sh']
+          ports:
+            - containerPort: 80
+      #    livenessProbe:  # Optional
+      #      httpGet:
+      #        path: /healthz
+      #        port: 80
+      #        scheme: HTTP
+      #      initialDelaySeconds: 30
+      #      timeoutSeconds: 5
+      serviceAccountName: kubernetes-dashboard-proxy
