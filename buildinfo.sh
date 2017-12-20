@@ -1,2 +1,0 @@
-export CONTAINER_REGISTRY=''
-export CONTAINER_TAG=''

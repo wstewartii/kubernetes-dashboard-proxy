@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: kubernetes-dashboard-proxy
+  name: {{ .Release.Name }}
   namespace: kube-system
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
-  name: kubernetes-dashboard-proxy-read
+  name: {{ .Release.Name }}-read
 rules:
 - apiGroups:
   - '*'
@@ -21,14 +21,14 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
-  name: kubernetes-dashboard-proxy
+  name: {{ .Release.Name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: kubernetes-dashboard-proxy-read
+  name: {{ .Release.Name }}-read
 subjects:
 - kind: ServiceAccount
-  name: kubernetes-dashboard-proxy
+  name: {{ .Release.Name }}
   namespace: kube-system
 ---
 apiVersion: extensions/v1beta1
@@ -36,15 +36,15 @@ kind: Ingress
 metadata:
   annotations:
     ingress.kubernetes.io/rewrite-target: /
-  name: kubernetes-dashboard-proxy
+  name: {{ .Release.Name }}
   namespace: kube-system
 spec:
   rules:
-    - host: {{ dashboard_public_url }}
+    - host: {{ .Values.dashboard_public_url }}
       http:
         paths:
           - backend:
-              serviceName: kubernetes-dashboard-proxy
+              serviceName: {{ .Release.Name }}
               servicePort: 80
             path: /
 ---
@@ -52,36 +52,36 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-  name: kubernetes-dashboard-proxy
+  name: {{ .Release.Name }}
   namespace: kube-system
 spec:
   ports:
     - port: 80
   selector:
-    k8s-app: kubernetes-dashboard-proxy
+    k8s-app: {{ .Release.Name }}
 
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: kubernetes-dashboard-proxy
+  name: {{ .Release.Name }}
   namespace: kube-system
 spec:
   replicas: 1
   template:
     metadata:
       labels:
-        k8s-app: kubernetes-dashboard-proxy
+        k8s-app: {{ .Release.Name }}
     spec:
       terminationGracePeriodSeconds: 60
       containers:
-        - name: kubernetes-dashboard-proxy
-          image: {{ registry }}:{{ image }}/{{ tag }}
+        - name: {{ .Release.Name }}
+          image: {{ .Values.registry }}:{{ .Release.Name }}/{{ .Values.tag }}
           env:
           - name: DASHBOARD_URL
-            value: {{ dashboard_private_url }}
+            value: {{ .Values.dashboard_private_url }}
           - name: DASHBOARD_PORT
-            value: {{ dashboard_private_port }}
+            value: {{ .Values.dashboard_private_port }}
           imagePullPolicy: Always
           command: ['/bin/bash', 'entrypoint.sh']
           ports:
@@ -93,4 +93,4 @@ spec:
       #        scheme: HTTP
       #      initialDelaySeconds: 30
       #      timeoutSeconds: 5
-      serviceAccountName: kubernetes-dashboard-proxy
+      serviceAccountName: {{ .Release.Name }}
